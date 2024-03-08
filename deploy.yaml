@@ -1,0 +1,67 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: demo
+spec:
+  selector:
+    app: demo
+  ports:
+    - name: management
+      port: 10100
+      targetPort: 10100
+    - name: service
+      port: 9001
+      targetPort: 9001
+  type: LoadBalancer
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: demo
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: demo
+  template:
+    metadata:
+      labels:
+        app: demo
+    spec:
+      containers:
+        - image: demo:v1.0
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 10100
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness-indicator
+              port: 10100
+              scheme: HTTP
+            initialDelaySeconds: 15
+            periodSeconds: 3
+            timeoutSeconds: 10
+            successThreshold: 1
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness-indicator
+              port: 10100
+              scheme: HTTP
+            initialDelaySeconds: 15
+            periodSeconds: 3
+            timeoutSeconds: 10
+            successThreshold: 1
+            failureThreshold: 3
+          startupProbe:
+            httpGet:
+              path: /actuator/health/startup-indicator
+              port: 10100
+              scheme: HTTP
+            initialDelaySeconds: 35
+            periodSeconds: 3
+            failureThreshold: 3
+          name: demo
+      terminationGracePeriodSeconds: 30
+      restartPolicy: Always
